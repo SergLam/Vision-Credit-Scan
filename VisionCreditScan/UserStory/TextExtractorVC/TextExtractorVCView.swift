@@ -3,13 +3,14 @@
 //  VisionCreditScan
 //
 //  Created by Serhii Liamtsev on 5/6/21.
-//  Copyright © 2021 iowncode. All rights reserved.
+//  Copyright © 2021 Serhii Liamtsev. All rights reserved.
 //
 
 import UIKit
 
 protocol TextExtractorVCViewDelegate: AnyObject {
     
+    func didTapBackButton()
     func didTapActionButton()
 }
 
@@ -19,16 +20,25 @@ final class TextExtractorVCView: UIView {
     
     private(set) lazy var overlay = UIView()
     
-    private let verticalContainerView: UIStackView = UIStackView()
+    private(set) lazy var verticalContainerView: UIStackView = UIStackView()
     
     private let disclaimerLabel: UILabel = UILabel()
     
     private(set) lazy var imageView: UIImageView = UIImageView()
     
-    private let retryButton: UIButton = UIButton()
-    private(set) lazy var button: UIButton = UIButton(type: .system)
+    private let buttonsContainer: UIStackView = UIStackView()
     
-    private(set) lazy var digitsLabel: UILabel = UILabel(frame: .zero)
+    private let backButton: UIButton = UIButton()
+    private let buttonSize: CGFloat = UIScreen.height / 8
+    private let buttonColor: UIColor = .white
+    
+    private let buttonBorderColor: UIColor = .black
+    private let buttonBorderWidth: CGFloat = 3.0
+    
+    private let retryButton: UIButton = UIButton()
+    private lazy var button: UIButton = UIButton(type: .system)
+    
+    private lazy var digitsLabel: UILabel = UILabel(frame: .zero)
     
     // MARK: - Life cycle
     override init(frame: CGRect) {
@@ -45,71 +55,130 @@ final class TextExtractorVCView: UIView {
         initialSetup()
     }
     
+    func setResultText(_ text: String?) {
+        
+        digitsLabel.text = text
+    }
+    
     func clearOverlay(){
         overlay.isHidden = false
         overlay.frame = CGRect.zero
     }
     
-    func setOverlayFrame(_ frame: CGRect) {
-        overlay.frame = frame
+    func drawSelectionArea(fromPoint: CGPoint, toPoint: CGPoint) {
+        
+        let originX: CGFloat = min(fromPoint.x, toPoint.x)
+        let originY: CGFloat = min(fromPoint.y, toPoint.y)
+        
+        let width: CGFloat = abs(fromPoint.x - toPoint.x)
+        let height: CGFloat = abs(fromPoint.y - toPoint.y)
+        let rect = CGRect(x: originX,
+                          y: originY,
+                          width: width,
+                          height: height)
+        overlay.frame = rect
     }
     
+    func getOverlayedSnapshot() -> UIImage {
+        
+        return UIGraphicsImageRenderer(bounds: overlay.frame).image { _ in
+            
+            clearOverlay()
+            imageView.drawHierarchy(in: imageView.bounds, afterScreenUpdates: true)
+        }
+    }
+    
+    // MARK: - Private functions
     private func initialSetup() {
         
         setupLayout()
         
+        backButton.addTarget(self, action: #selector(didTapBackButton), for: .touchUpInside)
         button.addTarget(self, action: #selector(didTapActionButton), for: .touchUpInside)
     }
     
     private func setupLayout() {
         
+        addSubview(verticalContainerView)
+        verticalContainerView.isUserInteractionEnabled = true
+        verticalContainerView.axis = .vertical
+        verticalContainerView.spacing = 10
+        verticalContainerView.alignment = .center
+        
+        verticalContainerView.translatesAutoresizingMaskIntoConstraints = false
+        let verticalContainerViewConstraints: [NSLayoutConstraint] = [
+            
+            verticalContainerView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 16),
+            verticalContainerView.bottomAnchor.constraint(lessThanOrEqualTo: self.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            verticalContainerView.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+            verticalContainerView.trailingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.trailingAnchor, constant: -8)
+        ]
+        NSLayoutConstraint.activate(verticalContainerViewConstraints)
+        
+        verticalContainerView.addArrangedSubview(disclaimerLabel)
+        disclaimerLabel.numberOfLines = 0
+        disclaimerLabel.textAlignment = .center
+        disclaimerLabel.text = "Please drag and select text area\nbefore extraction - try to touch and drag card image"
+        
+        verticalContainerView.addArrangedSubview(imageView)
+        imageView.isUserInteractionEnabled = true
         imageView.contentMode = .scaleAspectFit
-        
-        addSubview(imageView)
-        
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.leftAnchor.constraint(equalTo: self.leftAnchor).isActive = true
-        imageView.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
-        imageView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 30).isActive = true
-        imageView.bottomAnchor.constraint(equalTo: self.bottomAnchor).isActive = true
-        
-//        addSubview(disclaimerLabel)
-//        disclaimerLabel.numberOfLines = 0
-//        disclaimerLabel.textAlignment = .center
-//        disclaimerLabel.text = "Please drag and select text area before extraction - try to touch and drag card image"
-//
-//        disclaimerLabel.translatesAutoresizingMaskIntoConstraints = false
-//        let disclaimerLabelConstraints: [NSLayoutConstraint] = [
-//            disclaimerLabel.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor, constant: 16),
-//            disclaimerLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 16),
-//            disclaimerLabel.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -16),
-//        ]
-//        NSLayoutConstraint.activate(disclaimerLabelConstraints)
-        
-        button.setTitle("Extract Digits", for: .normal)
-        addSubview(button)
-        
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.leftAnchor.constraint(equalTo: self.leftAnchor).isActive = true
-        button.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
-        button.bottomAnchor.constraint(equalTo: self.safeAreaLayoutGuide.bottomAnchor, constant: -16).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        
-        addSubview(digitsLabel)
-        digitsLabel.numberOfLines = 0
-        digitsLabel.textAlignment = .center
-        
-        digitsLabel.translatesAutoresizingMaskIntoConstraints = false
-        digitsLabel.leftAnchor.constraint(equalTo: self.leftAnchor).isActive = true
-        digitsLabel.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
-        digitsLabel.bottomAnchor.constraint(equalTo: self.button.topAnchor, constant: -20).isActive = true
-        digitsLabel.heightAnchor.constraint(equalToConstant: 30).isActive = true
-        
-        overlay.backgroundColor = UIColor.red.withAlphaComponent(0.5)
-        overlay.isHidden = true
         
         imageView.addSubview(overlay)
         imageView.bringSubviewToFront(overlay)
+        overlay.backgroundColor = UIColor.red.withAlphaComponent(0.5)
+        overlay.isHidden = true
+        
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        let imageViewConstraints: [NSLayoutConstraint] = [
+            imageView.leadingAnchor.constraint(equalTo: verticalContainerView.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: verticalContainerView.trailingAnchor),
+            imageView.heightAnchor.constraint(equalToConstant:  UIScreen.main.bounds.height * 0.5)
+        ]
+        NSLayoutConstraint.activate(imageViewConstraints)
+        
+        verticalContainerView.addArrangedSubview(digitsLabel)
+        digitsLabel.numberOfLines = 0
+        digitsLabel.textAlignment = .center
+        
+        verticalContainerView.addArrangedSubview(buttonsContainer)
+        buttonsContainer.axis = .horizontal
+        buttonsContainer.spacing = UIScreen.main.bounds.width * 0.1
+        buttonsContainer.alignment = .center
+        
+        buttonsContainer.addArrangedSubview(backButton)
+        backButton.setTitle("Back", for: .normal)
+        backButton.setTitleColor(UIColor.systemBlue, for: .normal)
+        backButton.backgroundColor = buttonColor
+        backButton.layer.cornerRadius = buttonSize / 2
+        backButton.layer.borderWidth = buttonBorderWidth
+        backButton.layer.borderColor = buttonBorderColor.cgColor
+        
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        let captureButtonConstraints: [NSLayoutConstraint] = [
+            
+            backButton.heightAnchor.constraint(equalToConstant: buttonSize),
+            backButton.widthAnchor.constraint(equalToConstant: buttonSize)
+        ]
+        NSLayoutConstraint.activate(captureButtonConstraints)
+        
+        buttonsContainer.addArrangedSubview(button)
+        button.setTitle("Extract Digits", for: .normal)
+        button.titleLabel?.adjustsFontSizeToFitWidth = true
+        button.setTitleColor(UIColor.systemBlue, for: .normal)
+        button.backgroundColor = buttonColor
+        button.layer.cornerRadius = buttonSize / 2
+        button.layer.borderWidth = buttonBorderWidth
+        button.layer.borderColor = buttonBorderColor.cgColor
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        
+        let buttonConstraints: [NSLayoutConstraint] = [
+            button.heightAnchor.constraint(equalToConstant: buttonSize),
+            button.widthAnchor.constraint(equalToConstant: buttonSize)
+        ]
+        NSLayoutConstraint.activate(buttonConstraints)
+        
     }
     
     // MARK: - Actions
@@ -117,6 +186,12 @@ final class TextExtractorVCView: UIView {
     func didTapActionButton(){
         
         delegate?.didTapActionButton()
+    }
+    
+    @objc
+    func didTapBackButton() {
+        
+        delegate?.didTapBackButton()
     }
     
 }

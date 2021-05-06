@@ -12,6 +12,8 @@
 		045FBA7026442D160067C782 /* UIScreen+Ext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045FBA6F26442D160067C782 /* UIScreen+Ext.swift */; };
 		045FBA7226442EE60067C782 /* MainVCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045FBA7126442EE60067C782 /* MainVCView.swift */; };
 		045FBA7626442F090067C782 /* TextExtractorVCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045FBA7526442F090067C782 /* TextExtractorVCView.swift */; };
+		045FBA7A264467D60067C782 /* TextExtractorVCViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045FBA79264467D60067C782 /* TextExtractorVCViewModel.swift */; };
+		045FBA7C26446ABD0067C782 /* MainVCViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045FBA7B26446ABD0067C782 /* MainVCViewModel.swift */; };
 		1E5C777123DEF09B00AEB4C5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5C777023DEF09B00AEB4C5 /* AppDelegate.swift */; };
 		1E5C777323DEF09B00AEB4C5 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5C777223DEF09B00AEB4C5 /* SceneDelegate.swift */; };
 		1E5C777523DEF09B00AEB4C5 /* MainVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E5C777423DEF09B00AEB4C5 /* MainVC.swift */; };
@@ -25,6 +27,8 @@
 		045FBA6F26442D160067C782 /* UIScreen+Ext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIScreen+Ext.swift"; sourceTree = "<group>"; };
 		045FBA7126442EE60067C782 /* MainVCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainVCView.swift; sourceTree = "<group>"; };
 		045FBA7526442F090067C782 /* TextExtractorVCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextExtractorVCView.swift; sourceTree = "<group>"; };
+		045FBA79264467D60067C782 /* TextExtractorVCViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextExtractorVCViewModel.swift; sourceTree = "<group>"; };
+		045FBA7B26446ABD0067C782 /* MainVCViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainVCViewModel.swift; sourceTree = "<group>"; };
 		1E5C776D23DEF09B00AEB4C5 /* VisionCreditScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VisionCreditScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1E5C777023DEF09B00AEB4C5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1E5C777223DEF09B00AEB4C5 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -125,6 +129,7 @@
 			children = (
 				1E5C777423DEF09B00AEB4C5 /* MainVC.swift */,
 				045FBA7126442EE60067C782 /* MainVCView.swift */,
+				045FBA7B26446ABD0067C782 /* MainVCViewModel.swift */,
 			);
 			path = MainVC;
 			sourceTree = "<group>";
@@ -134,6 +139,7 @@
 			children = (
 				045FBA622644242A0067C782 /* TextExtractorVC.swift */,
 				045FBA7526442F090067C782 /* TextExtractorVCView.swift */,
+				045FBA79264467D60067C782 /* TextExtractorVCViewModel.swift */,
 			);
 			path = TextExtractorVC;
 			sourceTree = "<group>";
@@ -195,7 +201,7 @@
 			attributes = {
 				LastSwiftUpdateCheck = 1130;
 				LastUpgradeCheck = 1130;
-				ORGANIZATIONNAME = iowncode;
+				ORGANIZATIONNAME = "Serhii Liamtsev";
 				TargetAttributes = {
 					1E5C776C23DEF09B00AEB4C5 = {
 						CreatedOnToolsVersion = 11.3;
@@ -245,6 +251,8 @@
 				045FBA7226442EE60067C782 /* MainVCView.swift in Sources */,
 				045FBA632644242A0067C782 /* TextExtractorVC.swift in Sources */,
 				1E5C777323DEF09B00AEB4C5 /* SceneDelegate.swift in Sources */,
+				045FBA7C26446ABD0067C782 /* MainVCViewModel.swift in Sources */,
+				045FBA7A264467D60067C782 /* TextExtractorVCViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

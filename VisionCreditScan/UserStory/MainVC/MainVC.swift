@@ -11,15 +11,11 @@ import UIKit
 import AVFoundation
 import Vision
 
-final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+final class MainVC: UIViewController {
     
-    private let captureSession = AVCaptureSession()
-    private lazy var previewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
-    private let videoDataOutput = AVCaptureVideoDataOutput()
+    private let viewModel: MainVCViewModel = MainVCViewModel()
     
     private let contentView: MainVCView = MainVCView()
-    
-    private var isTapped = false
     
     private var maskLayer = CAShapeLayer()
     
@@ -32,33 +28,33 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
         super.viewDidLoad()
         
         contentView.delegate = self
-        setCameraInput()
+        viewModel.delegate = self
+        viewModel.setCameraInput()
         showCameraFeed()
-        setCameraOutput()
+        viewModel.setCameraOutput()
         
         navigationItem.title = "Scan bank card"
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        
-        videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera_frame_processing_queue"))
-        captureSession.startRunning()
+        super.viewDidAppear(animated)
+        viewModel.changeCaptureSessionStatus(isOn: true)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
-        
-        videoDataOutput.setSampleBufferDelegate(nil, queue: nil)
-        captureSession.stopRunning()
+        super.viewDidDisappear(animated)
+        viewModel.changeCaptureSessionStatus(isOn: false)
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
         let size: CGSize = CGSize(width: self.view.frame.width, height: self.view.frame.height * 0.8)
-        self.previewLayer.frame = CGRect(origin: self.view.frame.origin, size: size)
+        self.viewModel.previewLayer.frame = CGRect(origin: self.view.frame.origin, size: size)
     }
     
     func doPerspectiveCorrection(_ observation: VNRectangleObservation, from buffer: CVImageBuffer) {
+        
         var ciImage = CIImage(cvImageBuffer: buffer)
         
         let topLeft = observation.topLeft.scaled(to: ciImage.extent.size)
@@ -79,28 +75,9 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
         let output = UIImage(cgImage: cgImage!)
         //UIImageWriteToSavedPhotosAlbum(output, nil, nil, nil)
         
-        let secondVC = TextExtractorVC()
-        secondVC.scannedImage = output
-        self.navigationController?.pushViewController(secondVC, animated: false)
+        let secondVC = TextExtractorVC(scannedImage: output)
+        navigationController?.pushViewController(secondVC, animated: false)
         
-    }
-    
-    @objc
-    func doScan(){
-        self.isTapped = true
-    }
-    
-    func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection) {
-        
-        guard let frame = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            debugPrint("unable to get image from sample buffer")
-            return
-        }
-        
-        self.detectRectangle(in: frame)
     }
     
     private func setCameraInput() {
@@ -110,68 +87,40 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
                 position: .back).devices.first else {
             fatalError("No back camera device found.")
         }
-        let cameraInput = try! AVCaptureDeviceInput(device: device)
-        self.captureSession.addInput(cameraInput)
+        
+        do {
+            
+            let cameraInput = try AVCaptureDeviceInput(device: device)
+            viewModel.setAVCaptureInput(cameraInput)
+            
+        } catch {
+            
+            assertionFailure("Unable to get input from capture device - \(error.localizedDescription)")
+        }
+        
     }
     
     private func showCameraFeed() {
-        self.previewLayer.videoGravity = .resizeAspectFill
-        self.view.layer.addSublayer(self.previewLayer)
-        self.previewLayer.frame = self.view.frame
+        viewModel.previewLayer.videoGravity = .resizeAspectFill
+        self.view.layer.addSublayer(viewModel.previewLayer)
+        viewModel.previewLayer.frame = self.view.frame
     }
     
-    private func setCameraOutput() {
-        self.videoDataOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as NSString) : NSNumber(value: kCVPixelFormatType_32BGRA)] as [String : Any]
-        
-        self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
-        self.videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "camera_frame_processing_queue"))
-        self.captureSession.addOutput(self.videoDataOutput)
-        
-        guard let connection = self.videoDataOutput.connection(with: AVMediaType.video),
-              connection.isVideoOrientationSupported else { return }
-        
-        connection.videoOrientation = .portrait
+}
+
+// MARK: - MainVCViewDelegate
+extension MainVC: MainVCViewDelegate {
+    
+    func didTapCaptureButton() {
+        viewModel.isUserTapped = true
     }
     
-    private func detectRectangle(in image: CVPixelBuffer) {
-        
-        let request = VNDetectRectanglesRequest(completionHandler: { (request: VNRequest, error: Error?) in
-            DispatchQueue.main.async {
-                
-                guard let results = request.results as? [VNRectangleObservation] else { return }
-                self.removeMask()
-                
-                guard let rect = results.first else{return}
-                self.drawBoundingBox(rect: rect)
-                
-                if self.isTapped{
-                    self.isTapped = false
-                    self.doPerspectiveCorrection(rect, from: image)
-                }
-            }
-        })
-        
-        request.minimumAspectRatio = VNAspectRatio(1.3)
-        request.maximumAspectRatio = VNAspectRatio(1.6)
-        request.minimumSize = Float(0.5)
-        request.maximumObservations = 1
-        
-        
-        let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: image, options: [:])
-        try? imageRequestHandler.perform([request])
-    }
+}
+
+// MARK: - MainVCViewModelDelegate
+extension MainVC: MainVCViewModelDelegate {
     
-    func drawBoundingBox(rect : VNRectangleObservation) {
-        
-        let transform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -self.previewLayer.frame.height)
-        let scale = CGAffineTransform.identity.scaledBy(x: self.previewLayer.frame.width, y: self.previewLayer.frame.height)
-        
-        let bounds = rect.boundingBox.applying(scale).applying(transform)
-        createLayer(in: bounds)
-        
-    }
-    
-    private func createLayer(in rect: CGRect) {
+    func createLayer(in rect: CGRect) {
         
         maskLayer = CAShapeLayer()
         maskLayer.frame = rect
@@ -180,20 +129,17 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
         maskLayer.borderColor = UIColor.red.cgColor
         maskLayer.borderWidth = 5.0
         
-        previewLayer.insertSublayer(maskLayer, at: 1)
-        
+        viewModel.previewLayer.insertSublayer(maskLayer, at: 1)
     }
     
     func removeMask() {
         maskLayer.removeFromSuperlayer()
     }
-}
-
-// MARK: - MainVCViewDelegate
-extension MainVC: MainVCViewDelegate {
     
-    func didTapCaptureButton() {
-        doScan()
+    func didCaptureCardImage(_ image: UIImage) {
+        
+        let secondVC = TextExtractorVC(scannedImage: image)
+        self.navigationController?.pushViewController(secondVC, animated: false)
     }
     
 }

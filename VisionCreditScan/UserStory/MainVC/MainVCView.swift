@@ -3,7 +3,7 @@
 //  VisionCreditScan
 //
 //  Created by Serhii Liamtsev on 5/6/21.
-//  Copyright © 2021 iowncode. All rights reserved.
+//  Copyright © 2021 Serhii Liamtsev. All rights reserved.
 //
 
 import UIKit
