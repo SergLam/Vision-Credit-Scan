@@ -17,25 +17,26 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
     private lazy var previewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
     private let videoDataOutput = AVCaptureVideoDataOutput()
     
+    private let contentView: MainVCView = MainVCView()
+    
     private var isTapped = false
-    
-    private let captureButton: UIButton = UIButton()
-    private let captureButtonSize: CGFloat = UIScreen.height / 10
-    private let captureButtonColor: UIColor = .white
-    
-    lazy var item: UIBarButtonItem = UIBarButtonItem(title: "Scan", style: .plain, target: self, action: #selector(doScan(sender:)))
     
     private var maskLayer = CAShapeLayer()
     
     // MARK: - Life cycle
+    override func loadView() {
+        view = contentView
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        contentView.delegate = self
         setCameraInput()
         showCameraFeed()
         setCameraOutput()
         
-        navigationItem.rightBarButtonItem = item
+        navigationItem.title = "Scan bank card"
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -52,7 +53,9 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        self.previewLayer.frame = self.view.frame
+        
+        let size: CGSize = CGSize(width: self.view.frame.width, height: self.view.frame.height * 0.8)
+        self.previewLayer.frame = CGRect(origin: self.view.frame.origin, size: size)
     }
     
     func doPerspectiveCorrection(_ observation: VNRectangleObservation, from buffer: CVImageBuffer) {
@@ -83,7 +86,7 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
     }
     
     @objc
-    func doScan(sender: UIButton!){
+    func doScan(){
         self.isTapped = true
     }
     
@@ -184,4 +187,13 @@ final class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelega
     func removeMask() {
         maskLayer.removeFromSuperlayer()
     }
+}
+
+// MARK: - MainVCViewDelegate
+extension MainVC: MainVCViewDelegate {
+    
+    func didTapCaptureButton() {
+        doScan()
+    }
+    
 }

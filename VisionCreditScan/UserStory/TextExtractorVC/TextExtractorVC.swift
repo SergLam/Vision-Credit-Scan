@@ -13,96 +13,30 @@ final class TextExtractorVC: UIViewController {
     
     let queue = OperationQueue()
     
-    let overlay = UIView()
     var lastPoint = CGPoint.zero
     
     var textRecognitionRequest = VNRecognizeTextRequest(completionHandler: nil)
     private let textRecognitionWorkQueue = DispatchQueue(label: "MyVisionScannerQueue", qos: .userInitiated, attributes: [], autoreleaseFrequency: .workItem)
     
-    var scannedImage : UIImage?
+    var scannedImage: UIImage?
     
     private var maskLayer = [CAShapeLayer]()
-    
-    lazy var imageView : UIImageView = {
-       
-        let b = UIImageView()
-        b.contentMode = .scaleAspectFit
-        
-        view.addSubview(b)
-        
-        b.translatesAutoresizingMaskIntoConstraints = false
-        b.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-        b.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-        b.topAnchor.constraint(equalTo: view.topAnchor, constant: 30).isActive = true
-        b.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
-        
-        return b
-        
-    }()
-    
-    lazy var button : UIButton = {
-       
-        let b = UIButton(type: .system)
-        b.setTitle("Extract Digits", for: .normal)
-        view.addSubview(b)
-        
-        b.translatesAutoresizingMaskIntoConstraints = false
-        b.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-        b.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-        b.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
-        b.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        
-        return b
-        
-    }()
-    
-    lazy var digitsLabel : UILabel = {
-       
-        let b = UILabel(frame: .zero)
-        
-        view.addSubview(b)
-        
-        b.translatesAutoresizingMaskIntoConstraints = false
-        b.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
-        b.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
-        b.bottomAnchor.constraint(equalTo: self.button.topAnchor, constant: -20).isActive = true
-        b.heightAnchor.constraint(equalToConstant: 30).isActive = true
-        
-        return b
-        
-    }()
 
-    @objc
-    func doExtraction(sender: UIButton){
-        processImage(snapshot(in: imageView, rect: overlay.frame))
-    }
-
-    func snapshot(in imageView: UIImageView, rect: CGRect) -> UIImage {
-        return UIGraphicsImageRenderer(bounds: rect).image { _ in
     
-            clearOverlay()
-            imageView.drawHierarchy(in: imageView.bounds, afterScreenUpdates: true)
-            
-        }
-    }
+    private let contentView: TextExtractorVCView = TextExtractorVCView()
     
     // MARK: - Life cycle
+    override func loadView() {
+        view = contentView
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-    
+        
         setupVision()
         self.view.backgroundColor = .black
-                
-        imageView.image = scannedImage
-    
-        overlay.backgroundColor = UIColor.red.withAlphaComponent(0.5)
-        overlay.isHidden = true
-
-        imageView.addSubview(overlay)
-        imageView.bringSubviewToFront(overlay)
-        
-        button.addTarget(self, action: #selector(doExtraction(sender:)), for: .touchUpInside)
-        
+        contentView.delegate = self
+        contentView.imageView.image = scannedImage
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -112,7 +46,7 @@ final class TextExtractorVC: UIViewController {
             lastPoint = touch.location(in: self.view)
         }
     }
-
+    
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let touch = touches.first {
             let currentPoint = touch.location(in: view)
@@ -127,26 +61,25 @@ final class TextExtractorVC: UIViewController {
             var detectedText = ""
             for observation in observations {
                 guard let topCandidate = observation.topCandidates(1).first else { return }
-
-    
+                
+                
                 detectedText += topCandidate.string
                 detectedText += "\n"
             }
-
+            
             DispatchQueue.main.async{
-                self.digitsLabel.text = detectedText
+                self.contentView.digitsLabel.text = detectedText
             }
         }
-
+        
         textRecognitionRequest.recognitionLevel = .accurate
-    }
-
-    private func processImage(_ image: UIImage) {
-        recognizeTextInImage(image)
     }
     
     private func recognizeTextInImage(_ image: UIImage) {
-        guard let cgImage = image.cgImage else { return }
+        
+        guard let cgImage = image.cgImage else {
+            return
+        }
         
         textRecognitionWorkQueue.async {
             let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
@@ -159,14 +92,34 @@ final class TextExtractorVC: UIViewController {
     }
     
     func clearOverlay(){
-        overlay.isHidden = false
-        overlay.frame = CGRect.zero
+        contentView.overlay.isHidden = false
+        contentView.overlay.frame = CGRect.zero
     }
     
     func drawSelectionArea(fromPoint: CGPoint, toPoint: CGPoint) {
         
-            let rect = CGRect(x: min(fromPoint.x, toPoint.x), y: min(fromPoint.y, toPoint.y), width: abs(fromPoint.x - toPoint.x), height: abs(fromPoint.y - toPoint.y))
-            overlay.frame = rect
+        let rect = CGRect(x: min(fromPoint.x, toPoint.x), y: min(fromPoint.y, toPoint.y), width: abs(fromPoint.x - toPoint.x), height: abs(fromPoint.y - toPoint.y))
+        contentView.overlay.frame = rect
+    }
+    
+    func snapshot(in imageView: UIImageView, rect: CGRect) -> UIImage {
+        
+        return UIGraphicsImageRenderer(bounds: rect).image { _ in
+            
+            clearOverlay()
+            imageView.drawHierarchy(in: imageView.bounds, afterScreenUpdates: true)
+        }
+    }
+    
+}
+
+// MARK: - TextExtractorVCViewDelegate
+extension TextExtractorVC: TextExtractorVCViewDelegate {
+    
+    func didTapActionButton() {
+        
+        let image: UIImage = snapshot(in: contentView.imageView, rect: contentView.overlay.frame)
+        recognizeTextInImage(image)
     }
     
 }
